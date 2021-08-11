@@ -88,7 +88,11 @@ pub struct MBChunk {
 impl MBChunk {
     /// Create a new batch and write the contents of the [`TableBatch`] into it. Chunks
     /// shouldn't exist without some data.
-    pub fn new(metrics: ChunkMetrics, batch: TableBatch<'_>, mask: Option<&[bool]>) -> Result<Self> {
+    pub fn new(
+        metrics: ChunkMetrics,
+        batch: TableBatch<'_>,
+        mask: Option<&[bool]>,
+    ) -> Result<Self> {
         let table_name = Arc::from(batch.name());
 
         let mut chunk = Self {
@@ -107,7 +111,11 @@ impl MBChunk {
     /// Write the contents of a [`TableBatch`] into this Chunk.
     ///
     /// Panics if the batch specifies a different name for the table in this Chunk
-    pub fn write_table_batch(&mut self, batch: TableBatch<'_>, mask: Option<&[bool]>) -> Result<()> {
+    pub fn write_table_batch(
+        &mut self,
+        batch: TableBatch<'_>,
+        mask: Option<&[bool]>,
+    ) -> Result<()> {
         let table_name = batch.name();
         assert_eq!(
             table_name,
@@ -261,7 +269,11 @@ impl MBChunk {
 
     /// Validates the schema of the passed in columns, then adds their values to
     /// the associated columns in the table and updates summary statistics.
-    fn write_columns(&mut self, columns: Vec<entry::Column<'_>>, mask: Option<&[bool]>) -> Result<()> {
+    fn write_columns(
+        &mut self,
+        columns: Vec<entry::Column<'_>>,
+        mask: Option<&[bool]>,
+    ) -> Result<()> {
         let row_count_before_insert = self.rows();
         let additional_rows = columns.first().map(|x| x.row_count).unwrap_or_default();
         let masked_values = if let Some(mask) = mask {
@@ -397,7 +409,7 @@ mod tests {
     };
     use entry::test_helpers::lp_to_entry;
     use internal_types::schema::{InfluxColumnType, InfluxFieldType};
-    use std::num::NonZeroU64;
+    use std::{num::NonZeroU64, vec};
 
     #[test]
     fn writes_table_batches() {
@@ -1098,4 +1110,122 @@ mod tests {
             response
         );
     }
+
+    #[test]
+    fn test_mask() {
+        let mut entries = vec![];
+        let mut masks = vec![];
+
+        let lp = [
+            "table float_field=1.1,int_field=11i,uint_field=111u,bool_field=t,string_field=\"axx\" 100",
+            "table float_field=2.2,int_field=22i,uint_field=222u,bool_field=f,string_field=\"bxx\" 200",
+            "table float_field=3.3,int_field=33i,uint_field=333u,bool_field=f,string_field=\"cxx\" 300",
+            "table float_field=4.4,int_field=44i,uint_field=444u,bool_field=t,string_field=\"dxx\" 400",
+        ].join("\n");
+        masks.push(&[false, true, true, false]);
+        entries.push(lp_to_entry(&lp));
+
+        let lp = [
+            "table float_field=5.5,int_field=55i,uint_field=555u,bool_field=f,string_field=\"dxx\" 500",
+            "table float_field=6.6,int_field=66i,uint_field=666u,bool_field=t,string_field=\"exx\" 600",
+            "table foo=1 700",
+            "table foo=2 800",
+        ].join("\n");
+        masks.push(&[true, false, true, false]);
+        entries.push(lp_to_entry(&lp));
+
+        let mut chunk: Option<MBChunk> = None;
+        for (entry, mask) in entries.into_iter().zip(masks.into_iter()) {
+            for w in entry.partition_writes().unwrap() {
+                for batch in w.table_batches() {
+                    match chunk {
+                        Some(ref mut c) => c.write_table_batch(batch, Some(mask)).unwrap(),
+                        None => {
+                            chunk = Some(MBChunk::new(ChunkMetrics::new_unregistered(), batch, Some(mask)).unwrap());
+                        }
+                    }
+                }
+            }
+        }
+        let chunk = chunk.unwrap();
+
+        let expected = ColumnSummary {
+            name: "float_field".into(),
+            influxdb_type: Some(InfluxDbType::Field),
+            stats: Statistics::F64(StatValues {
+                min: Some(2.2),
+                max: Some(3.3),
+                total_count: 2,
+                null_count: 0,
+                distinct_count: None,
+            }),
+        };
+        assert_summary_eq!(expected, chunk, "float_field");
+
+        let expected = ColumnSummary {
+            name: "int_field".into(),
+            influxdb_type: Some(InfluxDbType::Field),
+            stats: Statistics::I64(StatValues {
+                min: Some(22),
+                max: Some(33),
+                total_count: 2,
+                null_count: 0,
+                distinct_count: None,
+            }),
+        };
+        assert_summary_eq!(expected, chunk, "int_field");
+
+        let expected = ColumnSummary {
+            name: "uint_field".into(),
+            influxdb_type: Some(InfluxDbType::Field),
+            stats: Statistics::U64(StatValues {
+                min: Some(222),
+                max: Some(333),
+                total_count: 2,
+                null_count: 0,
+                distinct_count: None,
+            }),
+        };
+        assert_summary_eq!(expected, chunk, "uint_field");
+
+        let expected = ColumnSummary {
+            name: "bool_field".into(),
+            influxdb_type: Some(InfluxDbType::Field),
+            stats: Statistics::Bool(StatValues {
+                min: Some(false),
+                max: Some(false),
+                total_count: 2,
+                null_count: 0,
+                distinct_count: None,
+            }),
+        };
+        assert_summary_eq!(expected, chunk, "bool_field");
+
+        let expected = ColumnSummary {
+            name: "string_field".into(),
+            influxdb_type: Some(InfluxDbType::Field),
+            stats: Statistics::String(StatValues {
+                min: Some("bxx".into()),
+                max: Some("cxx".into()),
+                total_count: 2,
+                null_count: 0,
+                distinct_count: None,
+            }),
+        };
+        assert_summary_eq!(expected, chunk, "string_field");
+
+        let expected = ColumnSummary {
+            name: "time".into(),
+            influxdb_type: Some(InfluxDbType::Timestamp),
+            stats: Statistics::I64(StatValues {
+                min: Some(200),
+                max: Some(300),
+                total_count: 2,
+                null_count: 0,
+                distinct_count: None,
+            }),
+        };
+        assert_summary_eq!(expected, chunk, "time");
+    }
+
 }

@@ -338,7 +338,10 @@ fn filter_entry(
                     // TODO: implement row filtering, for now replay the entire batch
                     let maybe_mask = table_batch.timestamps().ok().map(|timestamps| {
                         let ts_flush = ts_flush.timestamp_nanos();
-                        timestamps.into_iter().map(|ts_row| ts_row >= ts_flush).collect::<Vec<bool>>()
+                        timestamps
+                            .into_iter()
+                            .map(|ts_row| ts_row >= ts_flush)
+                            .collect::<Vec<bool>>()
                     });
                     (true, maybe_mask)
                 }

@@ -1187,7 +1187,8 @@ impl Db {
                         None => continue,
                     };
 
-                    let (store_batch, mask) = filter_table_batch(sequence, partition_key, &table_batch);
+                    let (store_batch, mask) =
+                        filter_table_batch(sequence, partition_key, &table_batch);
                     if !store_batch {
                         continue;
                     }
@@ -1247,8 +1248,9 @@ impl Db {
                             let mb_chunk =
                                 chunk.mutable_buffer().expect("cannot mutate open chunk");
 
-                            if let Err(e) =
-                                mb_chunk.write_table_batch(table_batch, mask.as_ref().map(|x| x.as_ref())).context(WriteEntry {
+                            if let Err(e) = mb_chunk
+                                .write_table_batch(table_batch, mask.as_ref().map(|x| x.as_ref()))
+                                .context(WriteEntry {
                                     partition_key,
                                     chunk_id,
                                 })
@@ -1266,9 +1268,12 @@ impl Db {
                                 self.metric_labels.clone(),
                             );
 
-                            let chunk_result =
-                                MBChunk::new(MutableBufferChunkMetrics::new(&metrics), table_batch, mask.as_ref().map(|x| x.as_ref()))
-                                    .context(WriteEntryInitial { partition_key });
+                            let chunk_result = MBChunk::new(
+                                MutableBufferChunkMetrics::new(&metrics),
+                                table_batch,
+                                mask.as_ref().map(|x| x.as_ref()),
+                            )
+                            .context(WriteEntryInitial { partition_key });
 
                             match chunk_result {
                                 Ok(mb_chunk) => {

@@ -125,7 +125,11 @@ impl Column {
         self.influx_type
     }
 
-    pub fn append(&mut self, entry: &EntryColumn<'_>, inclusion_mask: Option<&[bool]>) -> Result<()> {
+    pub fn append(
+        &mut self,
+        entry: &EntryColumn<'_>,
+        inclusion_mask: Option<&[bool]>,
+    ) -> Result<()> {
         self.validate_schema(entry)?;
 
         let masked_values = if let Some(mask) = inclusion_mask {
@@ -139,7 +143,7 @@ impl Column {
             return Ok(());
         }
 
-        let valid_mask = construct_valid_mask(entry, inclusion_mask)?;
+        let valid_mask = construct_valid_mask(entry, row_count, inclusion_mask)?;
 
         match &mut self.data {
             ColumnData::Bool(col_data, stats) => {
@@ -157,11 +161,9 @@ impl Column {
                 let to_add = entry_data.len() - masked_values;
                 let null_count = row_count - to_add;
 
-                for ((idx, value), include) in iter_set_positions(&valid_mask).zip(entry_data).zip(MaskIter::new(inclusion_mask)) {
-                    if !include {
-                        continue;
-                    }
-
+                for (idx, value) in iter_set_positions(&valid_mask)
+                    .zip(MaskedIter::new(entry_data.iter(), inclusion_mask))
+                {
                     stats.update(value);
 
                     if *value {
@@ -184,7 +186,15 @@ impl Column {
                     .expect("invalid payload")
                     .into_iter();
 
-                handle_write(row_count, &valid_mask, entry_data, col_data, stats, masked_values, inclusion_mask);
+                handle_write(
+                    row_count,
+                    &valid_mask,
+                    entry_data,
+                    col_data,
+                    stats,
+                    masked_values,
+                    inclusion_mask,
+                );
             }
             ColumnData::F64(col_data, stats) => {
                 let entry_data = entry
@@ -195,7 +205,15 @@ impl Column {
                     .expect("invalid payload")
                     .into_iter();
 
-                handle_write(row_count, &valid_mask, entry_data, col_data, stats, masked_values, inclusion_mask);
+                handle_write(
+                    row_count,
+                    &valid_mask,
+                    entry_data,
+                    col_data,
+                    stats,
+                    masked_values,
+                    inclusion_mask,
+                );
             }
             ColumnData::I64(col_data, stats) => {
                 let entry_data = entry
@@ -206,7 +224,15 @@ impl Column {
                     .expect("invalid payload")
                     .into_iter();
 
-                handle_write(row_count, &valid_mask, entry_data, col_data, stats, masked_values, inclusion_mask);
+                handle_write(
+                    row_count,
+                    &valid_mask,
+                    entry_data,
+                    col_data,
+                    stats,
+                    masked_values,
+                    inclusion_mask,
+                );
             }
             ColumnData::String(col_data, stats) => {
                 let entry_data = entry
@@ -221,11 +247,9 @@ impl Column {
                 let to_add = entry_data.len() - masked_values;
                 let null_count = row_count - to_add;
 
-                for ((str, idx), include) in entry_data.iter().zip(iter_set_positions(&valid_mask)).zip(MaskIter::new(inclusion_mask)) {
-                    if !include {
-                        continue;
-                    }
-
+                for (str, idx) in MaskedIter::new(entry_data.iter(), inclusion_mask)
+                    .zip(iter_set_positions(&valid_mask))
+                {
                     col_data.extend(data_offset + idx - col_data.len());
                     stats.update(str);
                     col_data.append(str);
@@ -254,11 +278,9 @@ impl Column {
                 let to_add = entry_data.len() - masked_values;
                 let null_count = row_count - to_add;
 
-                for ((idx, value), include) in iter_set_positions(&valid_mask).zip(entry_data).zip(MaskIter::new(inclusion_mask)) {
-                    if !include {
-                        continue;
-                    }
-
+                for (idx, value) in iter_set_positions(&valid_mask)
+                    .zip(MaskedIter::new(entry_data.iter(), inclusion_mask))
+                {
                     stats.update(value);
                     col_data[data_offset + idx] = dictionary.lookup_value_or_insert(value);
                 }
@@ -417,66 +439,123 @@ impl Column {
     }
 }
 
-struct MaskIter<'a>{
-    mask: Option<&'a [bool]>,
-    pos: usize,
+struct MaskedIter<'a, I> {
+    it: I,
+    mask: Option<core::slice::Iter<'a, bool>>,
 }
 
-impl<'a> MaskIter<'a> {
-    fn new(mask: Option<&'a [bool]>) -> Self {
+impl<'a, I> MaskedIter<'a, I> {
+    fn new(it: I, mask: Option<&'a [bool]>) -> Self {
         Self {
-            mask,
-            pos: 0,
+            it,
+            mask: mask.map(|mask| mask.iter()),
         }
     }
 }
 
-impl<'a> Iterator for MaskIter<'a> {
-    type Item = bool;
+impl<'a, I> Iterator for MaskedIter<'a, I>
+where
+    I: Iterator,
+{
+    type Item = I::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(mask) = self.mask {
-            if self.pos < mask.len() {
-                let res = mask[self.pos];
-                self.pos += 1;
-                Some(res)
-            } else {
-                None
+        if let Some(mask) = self.mask.as_mut() {
+            for included in mask {
+                // always query `it` so that masked elements are skipped
+                let res = self.it.next();
+                if *included {
+                    return res;
+                }
             }
+
+            None
         } else {
-            Some(true)
+            self.it.next()
         }
     }
 }
 
 /// Construct a validity mask from the given column's null mask
-fn construct_valid_mask(column: &EntryColumn<'_>, inclusion_mask: Option<&[bool]>) -> Result<Vec<u8>> {
-    let buf_len = (column.row_count + 7) >> 3;
+fn construct_valid_mask(
+    column: &EntryColumn<'_>,
+    row_count: usize,
+    inclusion_mask: Option<&[bool]>,
+) -> Result<Vec<u8>> {
+    let buf_len_in = (column.row_count + 7) >> 3;
+    let buf_len_out = (row_count + 7) >> 3;
+
     match column.inner().null_mask() {
         Some(data) => {
             ensure!(
-                data.len() == buf_len,
+                data.len() == buf_len_in,
                 InvalidNullMask {
-                    expected_bytes: buf_len,
+                    expected_bytes: buf_len_in,
                     actual_bytes: data.len()
                 }
             );
 
-            Ok(data
-                .iter()
-                .zip(MaskIter::new(inclusion_mask))
-                .filter_map(|(x, include)| {
-                    include.then(|| {
-                        // Currently the bit mask is backwards
-                        !x.reverse_bits()
-                    })
+
+            let res: Vec<u8> = if let Some(inclusion_mask) = inclusion_mask {
+                let mut out_byte: u8 = 0;
+                let mut out_bit_counter = 0;
+
+                let mut in_byte: u8 = 0;
+                let mut in_bit_counter = 8;
+
+                let mut it = data.iter();
+                let mut out: Vec<u8> = Vec::with_capacity(buf_len_out);
+
+                for include in inclusion_mask {
+                    // do we need to read the next byte?
+                    if in_bit_counter == 8 {
+                        out_byte = 0;
+                        in_byte = *it.next().expect("checked length before");
+                        in_bit_counter = 0;
+                    }
+
+                    // read bit from input byte
+                    let bit = in_byte & 0x1;
+                    in_byte >>= 1;
+                    in_bit_counter += 1;
+
+                    // flip bit (null => validity)
+                    let bit = (!bit) & 0x1;
+
+                    if *include {
+                        // out byte full?
+                        if out_bit_counter == 8 {
+                            out.push(out_byte);
+                            out_byte = 0;
+                            out_bit_counter = 0;
+                        }
+
+                        // append bit to out byte
+                        out_byte |= bit << out_bit_counter;
+                        out_bit_counter += 1;
+                    }
+                }
+                if out_bit_counter > 0 {
+                    out.push(out_byte);
+                }
+
+                out
+            } else {
+                data.iter()
+                .map(|x| {
+                    // Currently the bit mask is backwards
+                    !x.reverse_bits()
                 })
-                .collect())
+                .collect()
+            };
+            assert_eq!(res.len(), buf_len_out);
+
+            Ok(res)
         }
         None => {
             // If no null mask they're all valid
             let mut data = Vec::new();
-            data.resize(buf_len, 0xFF);
+            data.resize(buf_len_out, 0xFF);
             Ok(data)
         }
     }
@@ -502,11 +581,9 @@ fn handle_write<T, E>(
     let to_add = entry_data.len() - masked_values;
     let null_count = row_count - to_add;
 
-    for ((idx, value), include) in iter_set_positions(valid_mask).zip(entry_data).zip(MaskIter::new(inclusion_mask)) {
-        if !include {
-            continue;
-        }
-
+    for (idx, value) in
+        iter_set_positions(valid_mask).zip(MaskedIter::new(entry_data, inclusion_mask))
+    {
         stats.update(&value);
         col_data[data_offset + idx] = value;
     }
@@ -517,4 +594,64 @@ fn handle_write<T, E>(
         stats.total_count - initial_total_count - null_count as u64,
         to_add as u64
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_masked_iterator() {
+        let actual: Vec<u32> = MaskedIter::new(IntoIterator::into_iter([]), None).collect();
+        let expected: Vec<u32> = vec![];
+        assert_eq!(actual, expected);
+
+        let actual: Vec<u32> = MaskedIter::new(IntoIterator::into_iter([]), Some(&[])).collect();
+        let expected: Vec<u32> = vec![];
+        assert_eq!(actual, expected);
+
+        let actual: Vec<u32> = MaskedIter::new(IntoIterator::into_iter([1, 2, 3]), None).collect();
+        let expected: Vec<u32> = vec![1, 2, 3];
+        assert_eq!(actual, expected);
+
+        let actual: Vec<u32> = MaskedIter::new(
+            IntoIterator::into_iter([1, 2, 3]),
+            Some(&[true, true, true]),
+        )
+        .collect();
+        let expected: Vec<u32> = vec![1, 2, 3];
+        assert_eq!(actual, expected);
+
+        let actual: Vec<u32> = MaskedIter::new(
+            IntoIterator::into_iter([1, 2, 3]),
+            Some(&[false, false, false]),
+        )
+        .collect();
+        let expected: Vec<u32> = vec![];
+        assert_eq!(actual, expected);
+
+        let actual: Vec<u32> = MaskedIter::new(
+            IntoIterator::into_iter([1, 2, 3]),
+            Some(&[true, true, false]),
+        )
+        .collect();
+        let expected: Vec<u32> = vec![1, 2];
+        assert_eq!(actual, expected);
+
+        let actual: Vec<u32> = MaskedIter::new(
+            IntoIterator::into_iter([1, 2, 3]),
+            Some(&[true, false, true]),
+        )
+        .collect();
+        let expected: Vec<u32> = vec![1, 3];
+        assert_eq!(actual, expected);
+
+        let actual: Vec<u32> = MaskedIter::new(
+            IntoIterator::into_iter([1, 2, 3]),
+            Some(&[false, true, false]),
+        )
+        .collect();
+        let expected: Vec<u32> = vec![2];
+        assert_eq!(actual, expected);
+    }
 }
