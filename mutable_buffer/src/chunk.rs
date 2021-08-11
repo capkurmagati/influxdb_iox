@@ -88,7 +88,7 @@ pub struct MBChunk {
 impl MBChunk {
     /// Create a new batch and write the contents of the [`TableBatch`] into it. Chunks
     /// shouldn't exist without some data.
-    pub fn new(metrics: ChunkMetrics, batch: TableBatch<'_>) -> Result<Self> {
+    pub fn new(metrics: ChunkMetrics, batch: TableBatch<'_>, mask: Option<&[bool]>) -> Result<Self> {
         let table_name = Arc::from(batch.name());
 
         let mut chunk = Self {
@@ -99,7 +99,7 @@ impl MBChunk {
         };
 
         let columns = batch.columns();
-        chunk.write_columns(columns)?;
+        chunk.write_columns(columns, mask)?;
 
         Ok(chunk)
     }
@@ -107,7 +107,7 @@ impl MBChunk {
     /// Write the contents of a [`TableBatch`] into this Chunk.
     ///
     /// Panics if the batch specifies a different name for the table in this Chunk
-    pub fn write_table_batch(&mut self, batch: TableBatch<'_>) -> Result<()> {
+    pub fn write_table_batch(&mut self, batch: TableBatch<'_>, mask: Option<&[bool]>) -> Result<()> {
         let table_name = batch.name();
         assert_eq!(
             table_name,
@@ -115,7 +115,7 @@ impl MBChunk {
             "can only insert table batch for a single table to chunk"
         );
 
-        self.write_columns(batch.columns())?;
+        self.write_columns(batch.columns(), mask)?;
 
         // Invalidate chunk snapshot
         *self
@@ -261,10 +261,16 @@ impl MBChunk {
 
     /// Validates the schema of the passed in columns, then adds their values to
     /// the associated columns in the table and updates summary statistics.
-    fn write_columns(&mut self, columns: Vec<entry::Column<'_>>) -> Result<()> {
+    fn write_columns(&mut self, columns: Vec<entry::Column<'_>>, mask: Option<&[bool]>) -> Result<()> {
         let row_count_before_insert = self.rows();
         let additional_rows = columns.first().map(|x| x.row_count).unwrap_or_default();
-        let final_row_count = row_count_before_insert + additional_rows;
+        let masked_values = if let Some(mask) = mask {
+            assert_eq!(additional_rows, mask.len());
+            mask.iter().map(|x| !x as usize).sum::<usize>()
+        } else {
+            0
+        };
+        let final_row_count = row_count_before_insert + additional_rows - masked_values;
 
         // get the column ids and validate schema for those that already exist
         columns.iter().try_for_each(|column| {
@@ -301,7 +307,7 @@ impl MBChunk {
                 })
                 .1;
 
-            column.append(&fb_column).context(ColumnError {
+            column.append(&fb_column, mask).context(ColumnError {
                 column: fb_column.name(),
             })?;
 
@@ -341,7 +347,7 @@ pub mod test_helpers {
             );
 
             for batch in table_batches {
-                chunk.write_table_batch(batch)?;
+                chunk.write_table_batch(batch, None)?;
             }
         }
 
@@ -366,9 +372,9 @@ pub mod test_helpers {
 
             for batch in table_batches {
                 match chunk {
-                    Some(ref mut c) => c.write_table_batch(batch)?,
+                    Some(ref mut c) => c.write_table_batch(batch, None)?,
                     None => {
-                        chunk = Some(MBChunk::new(ChunkMetrics::new_unregistered(), batch)?);
+                        chunk = Some(MBChunk::new(ChunkMetrics::new_unregistered(), batch, None)?);
                     }
                 }
             }
@@ -913,6 +919,7 @@ mod tests {
                     .first()
                     .unwrap()
                     .columns(),
+                None,
             )
             .err()
             .unwrap();
@@ -944,6 +951,7 @@ mod tests {
                     .first()
                     .unwrap()
                     .columns(),
+                None,
             )
             .err()
             .unwrap();
@@ -975,6 +983,7 @@ mod tests {
                     .first()
                     .unwrap()
                     .columns(),
+                None,
             )
             .err()
             .unwrap();
@@ -1006,6 +1015,7 @@ mod tests {
                     .first()
                     .unwrap()
                     .columns(),
+                None,
             )
             .err()
             .unwrap();
@@ -1037,6 +1047,7 @@ mod tests {
                     .first()
                     .unwrap()
                     .columns(),
+                None,
             )
             .err()
             .unwrap();
@@ -1068,6 +1079,7 @@ mod tests {
                     .first()
                     .unwrap()
                     .columns(),
+                None,
             )
             .err()
             .unwrap();

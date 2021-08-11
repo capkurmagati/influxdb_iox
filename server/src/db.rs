@@ -1135,14 +1135,15 @@ impl Db {
     /// 2. the partition key
     /// 3. the table batch (which also contains the table name)
     ///
-    /// It shall return `true` if the batch should be stored and `false` otherwise.
+    /// It shall return `(true, _)` if the batch should be stored and `(false, _)` otherwise. In the first case the
+    /// second element in the tuple is a row-wise mask. If it is provided only rows marked with `true` are stored.
     pub fn store_sequenced_entry<F>(
         &self,
         sequenced_entry: Arc<SequencedEntry>,
         filter_table_batch: F,
     ) -> Result<()>
     where
-        F: Fn(Option<&Sequence>, &str, &TableBatch<'_>) -> bool,
+        F: Fn(Option<&Sequence>, &str, &TableBatch<'_>) -> (bool, Option<Vec<bool>>),
     {
         // Get all needed database rule values, then release the lock
         let rules = self.rules.read();
@@ -1186,7 +1187,8 @@ impl Db {
                         None => continue,
                     };
 
-                    if !filter_table_batch(sequence, partition_key, &table_batch) {
+                    let (store_batch, mask) = filter_table_batch(sequence, partition_key, &table_batch);
+                    if !store_batch {
                         continue;
                     }
 
@@ -1246,7 +1248,7 @@ impl Db {
                                 chunk.mutable_buffer().expect("cannot mutate open chunk");
 
                             if let Err(e) =
-                                mb_chunk.write_table_batch(table_batch).context(WriteEntry {
+                                mb_chunk.write_table_batch(table_batch, mask.as_ref().map(|x| x.as_ref())).context(WriteEntry {
                                     partition_key,
                                     chunk_id,
                                 })
@@ -1265,7 +1267,7 @@ impl Db {
                             );
 
                             let chunk_result =
-                                MBChunk::new(MutableBufferChunkMetrics::new(&metrics), table_batch)
+                                MBChunk::new(MutableBufferChunkMetrics::new(&metrics), table_batch, mask.as_ref().map(|x| x.as_ref()))
                                     .context(WriteEntryInitial { partition_key });
 
                             match chunk_result {
@@ -1335,8 +1337,8 @@ fn filter_table_batch_keep_all(
     _sequence: Option<&Sequence>,
     _partition_key: &str,
     _batch: &TableBatch<'_>,
-) -> bool {
-    true
+) -> (bool, Option<Vec<bool>>) {
+    (true, None)
 }
 
 #[async_trait]

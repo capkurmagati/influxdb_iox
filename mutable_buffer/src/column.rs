@@ -125,15 +125,21 @@ impl Column {
         self.influx_type
     }
 
-    pub fn append(&mut self, entry: &EntryColumn<'_>) -> Result<()> {
+    pub fn append(&mut self, entry: &EntryColumn<'_>, inclusion_mask: Option<&[bool]>) -> Result<()> {
         self.validate_schema(entry)?;
 
-        let row_count = entry.row_count;
+        let masked_values = if let Some(mask) = inclusion_mask {
+            assert_eq!(entry.row_count, mask.len());
+            mask.iter().map(|x| !x as usize).sum::<usize>()
+        } else {
+            0
+        };
+        let row_count = entry.row_count - masked_values;
         if row_count == 0 {
             return Ok(());
         }
 
-        let mask = construct_valid_mask(entry)?;
+        let valid_mask = construct_valid_mask(entry, inclusion_mask)?;
 
         match &mut self.data {
             ColumnData::Bool(col_data, stats) => {
@@ -148,10 +154,14 @@ impl Column {
                 col_data.append_unset(row_count);
 
                 let initial_total_count = stats.total_count;
-                let to_add = entry_data.len();
+                let to_add = entry_data.len() - masked_values;
                 let null_count = row_count - to_add;
 
-                for (idx, value) in iter_set_positions(&mask).zip(entry_data) {
+                for ((idx, value), include) in iter_set_positions(&valid_mask).zip(entry_data).zip(MaskIter::new(inclusion_mask)) {
+                    if !include {
+                        continue;
+                    }
+
                     stats.update(value);
 
                     if *value {
@@ -174,7 +184,7 @@ impl Column {
                     .expect("invalid payload")
                     .into_iter();
 
-                handle_write(row_count, &mask, entry_data, col_data, stats);
+                handle_write(row_count, &valid_mask, entry_data, col_data, stats, masked_values, inclusion_mask);
             }
             ColumnData::F64(col_data, stats) => {
                 let entry_data = entry
@@ -185,7 +195,7 @@ impl Column {
                     .expect("invalid payload")
                     .into_iter();
 
-                handle_write(row_count, &mask, entry_data, col_data, stats);
+                handle_write(row_count, &valid_mask, entry_data, col_data, stats, masked_values, inclusion_mask);
             }
             ColumnData::I64(col_data, stats) => {
                 let entry_data = entry
@@ -196,7 +206,7 @@ impl Column {
                     .expect("invalid payload")
                     .into_iter();
 
-                handle_write(row_count, &mask, entry_data, col_data, stats);
+                handle_write(row_count, &valid_mask, entry_data, col_data, stats, masked_values, inclusion_mask);
             }
             ColumnData::String(col_data, stats) => {
                 let entry_data = entry
@@ -208,10 +218,14 @@ impl Column {
 
                 let data_offset = col_data.len();
                 let initial_total_count = stats.total_count;
-                let to_add = entry_data.len();
+                let to_add = entry_data.len() - masked_values;
                 let null_count = row_count - to_add;
 
-                for (str, idx) in entry_data.iter().zip(iter_set_positions(&mask)) {
+                for ((str, idx), include) in entry_data.iter().zip(iter_set_positions(&valid_mask)).zip(MaskIter::new(inclusion_mask)) {
+                    if !include {
+                        continue;
+                    }
+
                     col_data.extend(data_offset + idx - col_data.len());
                     stats.update(str);
                     col_data.append(str);
@@ -237,10 +251,14 @@ impl Column {
                 col_data.resize(data_offset + row_count, INVALID_DID);
 
                 let initial_total_count = stats.total_count;
-                let to_add = entry_data.len();
+                let to_add = entry_data.len() - masked_values;
                 let null_count = row_count - to_add;
 
-                for (idx, value) in iter_set_positions(&mask).zip(entry_data) {
+                for ((idx, value), include) in iter_set_positions(&valid_mask).zip(entry_data).zip(MaskIter::new(inclusion_mask)) {
+                    if !include {
+                        continue;
+                    }
+
                     stats.update(value);
                     col_data[data_offset + idx] = dictionary.lookup_value_or_insert(value);
                 }
@@ -253,7 +271,7 @@ impl Column {
             }
         };
 
-        self.valid.append_bits(entry.row_count, &mask);
+        self.valid.append_bits(row_count, &valid_mask);
         Ok(())
     }
 
@@ -399,8 +417,40 @@ impl Column {
     }
 }
 
+struct MaskIter<'a>{
+    mask: Option<&'a [bool]>,
+    pos: usize,
+}
+
+impl<'a> MaskIter<'a> {
+    fn new(mask: Option<&'a [bool]>) -> Self {
+        Self {
+            mask,
+            pos: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for MaskIter<'a> {
+    type Item = bool;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(mask) = self.mask {
+            if self.pos < mask.len() {
+                let res = mask[self.pos];
+                self.pos += 1;
+                Some(res)
+            } else {
+                None
+            }
+        } else {
+            Some(true)
+        }
+    }
+}
+
 /// Construct a validity mask from the given column's null mask
-fn construct_valid_mask(column: &EntryColumn<'_>) -> Result<Vec<u8>> {
+fn construct_valid_mask(column: &EntryColumn<'_>, inclusion_mask: Option<&[bool]>) -> Result<Vec<u8>> {
     let buf_len = (column.row_count + 7) >> 3;
     match column.inner().null_mask() {
         Some(data) => {
@@ -414,9 +464,12 @@ fn construct_valid_mask(column: &EntryColumn<'_>) -> Result<Vec<u8>> {
 
             Ok(data
                 .iter()
-                .map(|x| {
-                    // Currently the bit mask is backwards
-                    !x.reverse_bits()
+                .zip(MaskIter::new(inclusion_mask))
+                .filter_map(|(x, include)| {
+                    include.then(|| {
+                        // Currently the bit mask is backwards
+                        !x.reverse_bits()
+                    })
                 })
                 .collect())
         }
@@ -436,6 +489,8 @@ fn handle_write<T, E>(
     entry_data: E,
     col_data: &mut Vec<T>,
     stats: &mut StatValues<T>,
+    masked_values: usize,
+    inclusion_mask: Option<&[bool]>,
 ) where
     T: Clone + Default + PartialOrd + IsNan,
     E: Iterator<Item = T> + ExactSizeIterator,
@@ -444,10 +499,14 @@ fn handle_write<T, E>(
     col_data.resize(data_offset + row_count, Default::default());
 
     let initial_total_count = stats.total_count;
-    let to_add = entry_data.len();
+    let to_add = entry_data.len() - masked_values;
     let null_count = row_count - to_add;
 
-    for (idx, value) in iter_set_positions(valid_mask).zip(entry_data) {
+    for ((idx, value), include) in iter_set_positions(valid_mask).zip(entry_data).zip(MaskIter::new(inclusion_mask)) {
+        if !include {
+            continue;
+        }
+
         stats.update(&value);
         col_data[data_offset + idx] = value;
     }
