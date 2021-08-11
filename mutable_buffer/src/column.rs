@@ -158,8 +158,7 @@ impl Column {
                 col_data.append_unset(row_count);
 
                 let initial_total_count = stats.total_count;
-                let to_add = entry_data.len() - masked_values;
-                let null_count = row_count - to_add;
+                let mut added = 0;
 
                 for (idx, value) in iter_set_positions(&valid_mask)
                     .zip(MaskedIter::new(entry_data.iter(), inclusion_mask))
@@ -169,12 +168,16 @@ impl Column {
                     if *value {
                         col_data.set(data_offset + idx);
                     }
+
+                    added += 1;
                 }
+
+                let null_count = row_count - added;
                 stats.update_for_nulls(null_count as u64);
 
                 assert_eq!(
                     stats.total_count - initial_total_count - null_count as u64,
-                    to_add as u64
+                    added as u64
                 );
             }
             ColumnData::U64(col_data, stats) => {
@@ -192,7 +195,6 @@ impl Column {
                     entry_data,
                     col_data,
                     stats,
-                    masked_values,
                     inclusion_mask,
                 );
             }
@@ -211,7 +213,6 @@ impl Column {
                     entry_data,
                     col_data,
                     stats,
-                    masked_values,
                     inclusion_mask,
                 );
             }
@@ -230,7 +231,6 @@ impl Column {
                     entry_data,
                     col_data,
                     stats,
-                    masked_values,
                     inclusion_mask,
                 );
             }
@@ -244,8 +244,7 @@ impl Column {
 
                 let data_offset = col_data.len();
                 let initial_total_count = stats.total_count;
-                let to_add = entry_data.len() - masked_values;
-                let null_count = row_count - to_add;
+                let mut added = 0;
 
                 for (str, idx) in MaskedIter::new(entry_data.iter(), inclusion_mask)
                     .zip(iter_set_positions(&valid_mask))
@@ -253,14 +252,16 @@ impl Column {
                     col_data.extend(data_offset + idx - col_data.len());
                     stats.update(str);
                     col_data.append(str);
+                    added += 1;
                 }
-
                 col_data.extend(data_offset + row_count - col_data.len());
+
+                let null_count = row_count - added;
                 stats.update_for_nulls(null_count as u64);
 
                 assert_eq!(
                     stats.total_count - initial_total_count - null_count as u64,
-                    to_add as u64
+                    added as u64
                 );
             }
             ColumnData::Tag(col_data, dictionary, stats) => {
@@ -275,20 +276,22 @@ impl Column {
                 col_data.resize(data_offset + row_count, INVALID_DID);
 
                 let initial_total_count = stats.total_count;
-                let to_add = entry_data.len() - masked_values;
-                let null_count = row_count - to_add;
+                let mut added = 0;
 
                 for (idx, value) in iter_set_positions(&valid_mask)
                     .zip(MaskedIter::new(entry_data.iter(), inclusion_mask))
                 {
                     stats.update(value);
                     col_data[data_offset + idx] = dictionary.lookup_value_or_insert(value);
+                    added += 1;
                 }
+
+                let null_count = row_count - added;
                 stats.update_for_nulls(null_count as u64);
 
                 assert_eq!(
                     stats.total_count - initial_total_count - null_count as u64,
-                    to_add as u64
+                    added as u64
                 );
             }
         };
@@ -495,7 +498,6 @@ fn construct_valid_mask(
                 }
             );
 
-
             let res: Vec<u8> = if let Some(inclusion_mask) = inclusion_mask {
                 let mut out_byte: u8 = 0;
                 let mut out_bit_counter = 0;
@@ -542,11 +544,11 @@ fn construct_valid_mask(
                 out
             } else {
                 data.iter()
-                .map(|x| {
-                    // Currently the bit mask is backwards
-                    !x.reverse_bits()
-                })
-                .collect()
+                    .map(|x| {
+                        // Currently the bit mask is backwards
+                        !x.reverse_bits()
+                    })
+                    .collect()
             };
             assert_eq!(res.len(), buf_len_out);
 
@@ -568,7 +570,6 @@ fn handle_write<T, E>(
     entry_data: E,
     col_data: &mut Vec<T>,
     stats: &mut StatValues<T>,
-    masked_values: usize,
     inclusion_mask: Option<&[bool]>,
 ) where
     T: Clone + Default + PartialOrd + IsNan,
@@ -578,21 +579,22 @@ fn handle_write<T, E>(
     col_data.resize(data_offset + row_count, Default::default());
 
     let initial_total_count = stats.total_count;
-    let to_add = entry_data.len() - masked_values;
-    let null_count = row_count - to_add;
+    let mut added = 0;
 
     for (idx, value) in
         iter_set_positions(valid_mask).zip(MaskedIter::new(entry_data, inclusion_mask))
     {
         stats.update(&value);
         col_data[data_offset + idx] = value;
+        added += 1;
     }
 
+    let null_count = row_count - added;
     stats.update_for_nulls(null_count as u64);
 
     assert_eq!(
         stats.total_count - initial_total_count - null_count as u64,
-        to_add as u64
+        added as u64
     );
 }
 

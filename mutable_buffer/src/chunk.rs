@@ -1126,8 +1126,8 @@ mod tests {
         entries.push(lp_to_entry(&lp));
 
         let lp = [
-            "table float_field=5.5,int_field=55i,uint_field=555u,bool_field=f,string_field=\"dxx\" 500",
-            "table float_field=6.6,int_field=66i,uint_field=666u,bool_field=t,string_field=\"exx\" 600",
+            "table float_field=5.5,int_field=55i,uint_field=555u,bool_field=f,string_field=\"exx\" 500",
+            "table float_field=6.6,int_field=66i,uint_field=666u,bool_field=t,string_field=\"fxx\" 600",
             "table foo=1 700",
             "table foo=2 800",
         ].join("\n");
@@ -1141,7 +1141,10 @@ mod tests {
                     match chunk {
                         Some(ref mut c) => c.write_table_batch(batch, Some(mask)).unwrap(),
                         None => {
-                            chunk = Some(MBChunk::new(ChunkMetrics::new_unregistered(), batch, Some(mask)).unwrap());
+                            chunk = Some(
+                                MBChunk::new(ChunkMetrics::new_unregistered(), batch, Some(mask))
+                                    .unwrap(),
+                            );
                         }
                     }
                 }
@@ -1154,9 +1157,9 @@ mod tests {
             influxdb_type: Some(InfluxDbType::Field),
             stats: Statistics::F64(StatValues {
                 min: Some(2.2),
-                max: Some(3.3),
-                total_count: 2,
-                null_count: 0,
+                max: Some(5.5),
+                total_count: 4,
+                null_count: 1,
                 distinct_count: None,
             }),
         };
@@ -1167,9 +1170,9 @@ mod tests {
             influxdb_type: Some(InfluxDbType::Field),
             stats: Statistics::I64(StatValues {
                 min: Some(22),
-                max: Some(33),
-                total_count: 2,
-                null_count: 0,
+                max: Some(55),
+                total_count: 4,
+                null_count: 1,
                 distinct_count: None,
             }),
         };
@@ -1180,9 +1183,9 @@ mod tests {
             influxdb_type: Some(InfluxDbType::Field),
             stats: Statistics::U64(StatValues {
                 min: Some(222),
-                max: Some(333),
-                total_count: 2,
-                null_count: 0,
+                max: Some(555),
+                total_count: 4,
+                null_count: 1,
                 distinct_count: None,
             }),
         };
@@ -1194,8 +1197,8 @@ mod tests {
             stats: Statistics::Bool(StatValues {
                 min: Some(false),
                 max: Some(false),
-                total_count: 2,
-                null_count: 0,
+                total_count: 4,
+                null_count: 1,
                 distinct_count: None,
             }),
         };
@@ -1206,9 +1209,9 @@ mod tests {
             influxdb_type: Some(InfluxDbType::Field),
             stats: Statistics::String(StatValues {
                 min: Some("bxx".into()),
-                max: Some("cxx".into()),
-                total_count: 2,
-                null_count: 0,
+                max: Some("exx".into()),
+                total_count: 4,
+                null_count: 1,
                 distinct_count: None,
             }),
         };
@@ -1219,13 +1222,12 @@ mod tests {
             influxdb_type: Some(InfluxDbType::Timestamp),
             stats: Statistics::I64(StatValues {
                 min: Some(200),
-                max: Some(300),
-                total_count: 2,
+                max: Some(700),
+                total_count: 4,
                 null_count: 0,
                 distinct_count: None,
             }),
         };
         assert_summary_eq!(expected, chunk, "time");
     }
-
 }
