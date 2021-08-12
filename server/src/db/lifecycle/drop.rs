@@ -3,7 +3,6 @@ use std::sync::Arc;
 use data_types::job::Job;
 use futures::Future;
 use lifecycle::LifecycleWriteGuard;
-use object_store::path::parsed::DirsAndFileName;
 use observability_deps::tracing::debug;
 use snafu::ResultExt;
 use tracker::{TaskTracker, TrackedFuture, TrackedFutureExt};
@@ -48,8 +47,7 @@ pub fn drop_chunk(
             let chunk_read = chunk.read();
 
             if let ChunkStage::Persisted { parquet, .. } = chunk_read.stage() {
-                let path: DirsAndFileName = parquet.path().into();
-                Some(path)
+                Some(parquet.path().clone())
             } else {
                 None
             }
