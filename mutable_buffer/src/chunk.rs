@@ -278,7 +278,7 @@ impl MBChunk {
         let additional_rows = columns.first().map(|x| x.row_count).unwrap_or_default();
         let masked_values = if let Some(mask) = mask {
             assert_eq!(additional_rows, mask.len());
-            mask.iter().map(|x| !x as usize).sum::<usize>()
+            mask.iter().filter(|x| !*x).count()
         } else {
             0
         };
@@ -1122,7 +1122,7 @@ mod tests {
             "table float_field=3.3,int_field=33i,uint_field=333u,bool_field=f,string_field=\"cxx\" 300",
             "table float_field=4.4,int_field=44i,uint_field=444u,bool_field=t,string_field=\"dxx\" 400",
         ].join("\n");
-        masks.push(&[false, true, true, false]);
+        masks.push(vec![false, true, true, false]);
         entries.push(lp_to_entry(&lp));
 
         let lp = [
@@ -1130,8 +1130,9 @@ mod tests {
             "table float_field=6.6,int_field=66i,uint_field=666u,bool_field=t,string_field=\"fxx\" 600",
             "table foo=1 700",
             "table foo=2 800",
+            "table foo=3 900",
         ].join("\n");
-        masks.push(&[true, false, true, false]);
+        masks.push(vec![true, false, true, false, false]);
         entries.push(lp_to_entry(&lp));
 
         let mut chunk: Option<MBChunk> = None;
@@ -1139,11 +1140,15 @@ mod tests {
             for w in entry.partition_writes().unwrap() {
                 for batch in w.table_batches() {
                     match chunk {
-                        Some(ref mut c) => c.write_table_batch(batch, Some(mask)).unwrap(),
+                        Some(ref mut c) => c.write_table_batch(batch, Some(mask.as_ref())).unwrap(),
                         None => {
                             chunk = Some(
-                                MBChunk::new(ChunkMetrics::new_unregistered(), batch, Some(mask))
-                                    .unwrap(),
+                                MBChunk::new(
+                                    ChunkMetrics::new_unregistered(),
+                                    batch,
+                                    Some(mask.as_ref()),
+                                )
+                                .unwrap(),
                             );
                         }
                     }
