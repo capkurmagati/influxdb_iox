@@ -198,8 +198,12 @@ LIMIT 20;
 ### Total row count by table
 
 ```sql
-SELECT database_name, table_name, max(row_count) as total_rows
-FROM chunk_columns
+SELECT database_name, table_name, sum(total_rows) as total_rows
+FROM (
+  SELECT database_name, table_name, max(row_count) as total_rows
+  FROM chunk_columns
+  GROUP BY database_name, partition_key, table_name
+)
 GROUP BY database_name, table_name
 ORDER BY total_rows DESC
 LIMIT 20;
@@ -208,9 +212,9 @@ LIMIT 20;
 ### Total row count by partition and table
 
 ```sql
-SELECT database_name, table_name, max(row_count) as total_rows
+SELECT database_name, partition_key, table_name, max(row_count) as total_rows
 FROM chunk_columns
-GROUP BY database_name, table_name
+GROUP BY database_name, partition_key, table_name
 ORDER BY total_rows DESC
 LIMIT 20;
 ```
