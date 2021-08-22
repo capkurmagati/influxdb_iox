@@ -1,6 +1,6 @@
 # InfluxDB SQL Repl Tips and Tricks
 
-InfluxDB IOx contains a built in SQL client you can use to interact with the server using SQL
+InfluxDB IOx contains a built in SQL client you can use to interact with the server using SQL.
 
 ## Quick Start
 
