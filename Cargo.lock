@@ -1127,10 +1127,11 @@ checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 
 [[package]]
 name = "fd-lock"
-version = "2.0.0"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0010f02effd88c702318c5dde0463206be67495d0b4d906ba7c0a8f166cc7f06"
+checksum = "b8806dd91a06a7a403a8e596f9bfbfb34e469efbc363fc9c9713e79e26472e36"
 dependencies = [
+ "cfg-if",
  "libc",
  "winapi",
 ]
@@ -1154,9 +1155,9 @@ dependencies = [
 
 [[package]]
 name = "flate2"
-version = "1.0.20"
+version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd3aec53de10fe96d7d8c565eb17f2c687bb5518a2ec453b5b1252964526abe0"
+checksum = "80edafed416a46fb378521624fab1cfa2eb514784fd8921adbe8a8d8321da811"
 dependencies = [
  "cfg-if",
  "crc32fast",
@@ -1474,9 +1475,9 @@ checksum = "62aca2aba2d62b4a7f5b33f3712cb1b0692779a56fb510499d5c0aa594daeaf3"
 
 [[package]]
 name = "handlebars"
-version = "3.5.5"
+version = "4.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4498fc115fa7d34de968184e473529abb40eeb6be8bc5f7faba3d08c316cb3e3"
+checksum = "fd85ecabdb47308d28d3a4113224fefcab2510ccb4e463aee0a1362eb84c756a"
 dependencies = [
  "log",
  "pest",
@@ -1745,10 +1746,13 @@ dependencies = [
  "influxdb_line_protocol",
  "influxdb_storage_client",
  "internal_types",
+ "iox_object_store",
  "itertools 0.10.1",
  "libc",
  "log",
  "logfmt",
+ "metric",
+ "metric_exporters",
  "metrics",
  "mutable_buffer",
  "num_cpus",
@@ -1758,6 +1762,7 @@ dependencies = [
  "panic_logging",
  "parking_lot",
  "parquet",
+ "parquet_file",
  "pprof",
  "predicates",
  "prettytable-rs",
@@ -2354,6 +2359,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.22.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7555d6c7164cc913be1ce7f95cbecdabda61eb2ccd89008524af306fb7f5031"
+dependencies = [
+ "bitflags",
+ "cc",
+ "cfg-if",
+ "libc",
+ "memoffset",
+]
+
+[[package]]
 name = "nodrop"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2675,9 +2693,9 @@ dependencies = [
 
 [[package]]
 name = "opentelemetry"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff27b33e30432e7b9854936693ca103d8591b0501f7ae9f633de48cda3bf2a67"
+checksum = "e1cf9b1c4e9a6c4de793c632496fa490bdc0e1eea73f0c91394f7b6990935d22"
 dependencies = [
  "async-trait",
  "crossbeam-channel",
@@ -2690,30 +2708,43 @@ dependencies = [
  "pin-project 1.0.8",
  "rand 0.8.4",
  "thiserror",
+ "tokio",
+ "tokio-stream",
 ]
 
 [[package]]
 name = "opentelemetry-jaeger"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09a9fc8192722e7daa0c56e59e2336b797122fb8598383dcb11c8852733b435c"
+checksum = "db22f492873ea037bc267b35a0e8e4fb846340058cb7c864efe3d0bf23684593"
 dependencies = [
  "async-trait",
  "lazy_static",
  "opentelemetry",
+ "opentelemetry-semantic-conventions",
  "thiserror",
  "thrift",
+ "tokio",
 ]
 
 [[package]]
 name = "opentelemetry-prometheus"
-version = "0.8.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e06ddda4790151e8b494f9bb32720fce23722d7f395f81383b9b2934bb6356a0"
+checksum = "4ee9c06c1366665e7d4dba6540a42ea48900a9c92dc5b963f3ae05fbba76dc63"
 dependencies = [
  "opentelemetry",
  "prometheus",
  "protobuf",
+]
+
+[[package]]
+name = "opentelemetry-semantic-conventions"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ffeac823339e8b0f27b961f4385057bf9f97f2863bc745bd015fd6091f2270e9"
+dependencies = [
+ "opentelemetry",
 ]
 
 [[package]]
@@ -3080,7 +3111,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "nix",
+ "nix 0.20.1",
  "parking_lot",
  "prost",
  "prost-build",
@@ -3841,9 +3872,9 @@ dependencies = [
 
 [[package]]
 name = "rustyline"
-version = "8.2.0"
+version = "9.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fbd4eaf7a7738f76c98e4f0395253ae853be3eb018f7b0bb57fe1b6c17e31874"
+checksum = "790487c3881a63489ae77126f57048b42d62d3b2bafbf37453ea19eedb6340d6"
 dependencies = [
  "bitflags",
  "cfg-if",
@@ -3853,7 +3884,7 @@ dependencies = [
  "libc",
  "log",
  "memchr",
- "nix",
+ "nix 0.22.1",
  "radix_trie",
  "scopeguard",
  "smallvec",
@@ -3998,9 +4029,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.66"
+version = "1.0.67"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "336b10da19a12ad094b59d870ebde26a45402e5b470add4b5fd03c5048a32127"
+checksum = "a7f9e390c27c3c0ce8bc5d725f6e4d30a29d26659494aa4b17535f7522c5c950"
 dependencies = [
  "indexmap",
  "itoa",
@@ -4056,6 +4087,7 @@ dependencies = [
  "iox_object_store",
  "itertools 0.10.1",
  "lifecycle",
+ "metric",
  "metrics",
  "mutable_buffer",
  "num_cpus",
@@ -4483,18 +4515,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.26"
+version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93119e4feac1cbe6c798c34d3a53ea0026b0b1de6a120deef895137c0529bfe2"
+checksum = "283d5230e63df9608ac7d9691adc1dfb6e701225436eb64d0b9a7f0a5a04f6ec"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.26"
+version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "060d69a0afe7796bf42e9e2ff91f5ee691fb15c53d38b4b62a9a53eb23164745"
+checksum = "fa3884228611f5cd3608e2d409bf7dce832e4eb3135e3f11addbd7e41bd68e71"
 dependencies = [
  "proc-macro2",
  "quote",
