@@ -5,12 +5,12 @@ authors = ["pauldix <paul@pauldix.net>"]
 edition = "2018"
 
 [dependencies] # In alphabetical order
-arrow = { version = "5.0", features = ["prettyprint"] }
+arrow = { version = "5.5", features = ["prettyprint"] }
 arrow_util = { path = "../arrow_util" }
 async-trait = "0.1"
 bytes = "1.0"
 chrono = "0.4"
-cache_loader_async = { version = "0.1.0", features = ["ttl-cache"] }
+cache_loader_async = { version = "0.1.2", features = ["ttl-cache"] }
 crc32fast = "1.2.0"
 data_types = { path = "../data_types" }
 datafusion = { path = "../datafusion" }
@@ -21,7 +21,7 @@ entry = { path = "../entry" }
 flatbuffers = "2"
 futures = "0.3"
 futures-util = { version = "0.3.1" }
-generated_types = { path = "../generated_types" }
+generated_types = { path = "../generated_types", features = ["data_types_conversions"] }
 hashbrown = "0.11"
 influxdb_iox_client = { path = "../influxdb_iox_client" }
 influxdb_line_protocol = { path = "../influxdb_line_protocol" }
@@ -43,6 +43,7 @@ query = { path = "../query" }
 rand = "0.8.3"
 rand_distr = "0.4.2"
 read_buffer = { path = "../read_buffer" }
+schema = { path = "../schema" }
 serde = "1.0"
 serde_json = "1.0"
 snafu = "0.6"
