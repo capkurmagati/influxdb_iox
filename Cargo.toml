@@ -39,7 +39,6 @@ members = [
     "datafusion_util",
     "entry",
     "generated_types",
-    "google_types",
     "influxdb2_client",
     "influxdb_iox_client",
     "influxdb_line_protocol",
@@ -57,9 +56,6 @@ members = [
     "observability_deps",
     "packers",
     "panic_logging",
-    "pbjson",
-    "pbjson_build",
-    "pbjson_test",
     "persistence_windows",
     "predicate",
     "query",
@@ -73,6 +69,7 @@ members = [
     "trace_http",
     "tracker",
     "trogging",
+    "schema",
     "grpc-router",
     "grpc-router/grpc-router-test-gen",
     "write_buffer",
@@ -115,8 +112,8 @@ tracker = { path = "tracker" }
 trogging = { path = "trogging", default-features = false, features = ["structopt"] }
 
 # Crates.io dependencies, in alphabetical order
-arrow = { version = "5.0", features = ["prettyprint"] }
-arrow-flight = "5.0"
+arrow = { version = "5.5", features = ["prettyprint"] }
+arrow-flight = "5.5"
 backtrace = "0.3"
 byteorder = "1.3.4"
 bytes = "1.0"
@@ -136,20 +133,18 @@ log = "0.4"
 once_cell = { version = "1.4.0", features = ["parking_lot"] }
 parking_lot = "0.11.2"
 itertools = "0.10.1"
-parquet = "5.3"
+parquet = "5.5"
 # used by arrow/datafusion anyway
 prettytable-rs = "0.8"
 pprof = { version = "^0.5", default-features = false, features = ["flamegraph", "protobuf"], optional = true }
 prost = "0.8"
 rustyline = { version = "9.0", default-features = false }
-# Forked to upgrade hyper and tokio
-routerify = { git = "https://github.com/influxdata/routerify", rev = "274e250" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.67"
 serde_urlencoded = "0.7.0"
 snafu = "0.6.9"
 structopt = "0.3.23"
-thiserror = "1.0.28"
+thiserror = "1.0.30"
 tikv-jemalloc-ctl = { version = "0.4.0" }
 tokio = { version = "1.11", features = ["macros", "rt-multi-thread", "parking_lot", "signal"] }
 tokio-stream = { version = "0.1.2", features = ["net"] }
@@ -178,10 +173,10 @@ parking_lot = "0.11.2"
 write_buffer = { path = "write_buffer" }
 
 # Crates.io dependencies, in alphabetical order
-assert_cmd = "2.0.0"
+assert_cmd = "2.0.2"
 flate2 = "1.0"
 hex = "0.4.2"
-predicates = "2.0.2"
+predicates = "2.0.3"
 rand = "0.8.3"
 rdkafka = "0.26.0"
 reqwest = "0.11"
@@ -200,3 +195,4 @@ aws = ["object_store/aws"] # Optional AWS / S3 object store support
 # Cargo cannot currently implement mutually exclusive features so let's force every build
 # to pick either heappy or jemalloc_replacing_malloc feature at least until we figure out something better.
 jemalloc_replacing_malloc = ["tikv-jemalloc-sys"]
+
