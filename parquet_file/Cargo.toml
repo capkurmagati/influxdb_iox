@@ -18,7 +18,7 @@ iox_object_store = { path = "../iox_object_store" }
 metric = { path = "../metric" }
 object_store = { path = "../object_store" }
 observability_deps = { path = "../observability_deps" }
-parquet = "5.0"
+parquet = "6.0"
 parquet-format = "2.6"
 parking_lot = "0.11.1"
 pbjson-types = "0.1"
