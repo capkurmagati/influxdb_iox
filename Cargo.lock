@@ -1224,7 +1224,7 @@ dependencies = [
  "data_types",
  "num_cpus",
  "observability_deps",
- "pbjson",
+ "pbjson 0.2.1",
  "pbjson-build",
  "pbjson-types",
  "proc-macro2",
@@ -2808,6 +2808,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pbjson"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12f64965beef9b7276dd811b81cce49569430a73ce1586aa121cb4ef9e0f498f"
+dependencies = [
+ "base64 0.13.0",
+ "serde",
+]
+
+[[package]]
 name = "pbjson-build"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2827,7 +2837,7 @@ checksum = "89d20cbdd9993508f3c3420a6133bddd267c540fbe23821887dc5af1d53a0d52"
 dependencies = [
  "bytes",
  "chrono",
- "pbjson",
+ "pbjson 0.1.0",
  "pbjson-build",
  "prost",
  "prost-build",
