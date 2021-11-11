@@ -10,7 +10,7 @@ data_types = { path = "../data_types", optional = true }
 observability_deps = { path = "../observability_deps" }
 pbjson = "0.1"
 pbjson-types = "0.1"
-prost = "0.8"
+prost = "0.9"
 regex = "1.4"
 serde = { version = "1.0", features = ["derive"] }
 tonic = "0.5"

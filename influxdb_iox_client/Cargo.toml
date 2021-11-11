@@ -24,7 +24,7 @@ dml = { path = "../dml", optional = true }
 mutable_batch = { path = "../mutable_batch", optional = true }
 mutable_batch_lp = { path = "../mutable_batch_lp", optional = true }
 mutable_batch_pb = { path = "../mutable_batch_pb", optional = true }
-prost = "0.8"
+prost = "0.9"
 rand = "0.8.3"
 serde = "1.0.128"
 serde_json = { version = "1.0.69", optional = true }
