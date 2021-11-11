@@ -2,7 +2,7 @@
 name = "generated_types"
 version = "0.1.0"
 authors = ["Paul Dix <paul@pauldix.net>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies] # In alphabetical order
 bytes = "1.0"
@@ -17,12 +17,13 @@ tonic = "0.5"
 time = { path = "../time" }
 
 [dev-dependencies]
+data_types = { path = "../data_types" }
 num_cpus = "1.13.0"
 
 [build-dependencies] # In alphabetical order
 # Pin specific version of the tonic-build dependencies to match arrow
 proc-macro2 = "=1.0.27"
-tonic-build = "0.5"
+tonic-build = "0.6"
 prost-build = "0.8"
 pbjson-build = "0.1"
 
