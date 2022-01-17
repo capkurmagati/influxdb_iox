@@ -20,7 +20,7 @@ parquet = "6.0"
 parquet_file = { path = "../parquet_file" }
 parquet-format = "2.6"
 parking_lot = "0.11.1"
-pbjson-types = "0.1"
+pbjson-types = "0.2"
 persistence_windows = { path = "../persistence_windows" }
 predicate = { path = "../predicate" }
 prost = "0.8"
