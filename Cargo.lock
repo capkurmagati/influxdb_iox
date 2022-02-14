@@ -355,6 +355,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "block-buffer"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bf7fe51849ea569fd452f37822f606a5cabb684dc918707a0193fd4664ff324"
+dependencies = [
+ "generic-array 0.14.5",
+]
+
+[[package]]
 name = "block-padding"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -791,6 +800,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "crypto-common"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4600d695eb3f6ce1cd44e6e291adceb2cc3ab12f20a33777ecd0bf6eba34e06"
+dependencies = [
+ "generic-array 0.14.5",
+]
+
+[[package]]
 name = "crypto-mac"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -970,6 +988,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
 dependencies = [
  "generic-array 0.14.5",
+]
+
+[[package]]
+name = "digest"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cb780dce4f9a8f5c087362b3a4595936b2019e7c8b30f2c3e9a7e94e6ae9837"
+dependencies = [
+ "block-buffer 0.10.2",
+ "crypto-common",
 ]
 
 [[package]]
@@ -2671,7 +2699,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
- "sha2",
+ "sha2 0.9.9",
  "thiserror",
  "url",
 ]
@@ -3853,7 +3881,7 @@ dependencies = [
  "rusoto_credential",
  "rustc_version",
  "serde",
- "sha2",
+ "sha2 0.9.9",
  "tokio",
 ]
 
@@ -4194,6 +4222,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha2"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99c3bd8169c58782adad9290a9af5939994036b76187f7b4f0e6de91dbbfc0ec"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest 0.10.2",
+]
+
+[[package]]
 name = "sharded-slab"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4367,7 +4406,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha-1 0.9.8",
- "sha2",
+ "sha2 0.9.9",
  "smallvec",
  "sqlformat",
  "sqlx-rt",
@@ -4391,7 +4430,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "sha2",
+ "sha2 0.9.9",
  "sqlx-core",
  "sqlx-rt",
  "syn",
@@ -5451,7 +5490,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
- "sha2",
+ "sha2 0.10.1",
  "smallvec",
  "syn",
  "tokio",

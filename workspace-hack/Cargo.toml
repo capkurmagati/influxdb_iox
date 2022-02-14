@@ -44,7 +44,7 @@ regex-syntax = { version = "0.6", features = ["unicode", "unicode-age", "unicode
 reqwest = { version = "0.11", features = ["__tls", "default-tls", "hyper-tls", "json", "native-tls-crate", "serde_json", "tokio-native-tls"] }
 serde = { version = "1", features = ["derive", "rc", "serde_derive", "std"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "indexmap", "preserve_order", "raw_value", "std"] }
-sha2 = { version = "0.9", features = ["std"] }
+sha2 = { version = "0.10", features = ["std"] }
 smallvec = { version = "1", default-features = false, features = ["union"] }
 tokio = { version = "1", features = ["bytes", "fs", "full", "io-std", "io-util", "libc", "macros", "memchr", "mio", "net", "num_cpus", "once_cell", "parking_lot", "process", "rt", "rt-multi-thread", "signal", "signal-hook-registry", "sync", "time", "tokio-macros", "winapi"] }
 tokio-stream = { version = "0.1", features = ["fs", "net", "time"] }
@@ -82,7 +82,7 @@ regex = { version = "1", features = ["aho-corasick", "memchr", "perf", "perf-cac
 regex-syntax = { version = "0.6", features = ["unicode", "unicode-age", "unicode-bool", "unicode-case", "unicode-gencat", "unicode-perl", "unicode-script", "unicode-segment"] }
 serde = { version = "1", features = ["derive", "rc", "serde_derive", "std"] }
 serde_json = { version = "1", features = ["arbitrary_precision", "indexmap", "preserve_order", "raw_value", "std"] }
-sha2 = { version = "0.9", features = ["std"] }
+sha2 = { version = "0.10", features = ["std"] }
 smallvec = { version = "1", default-features = false, features = ["union"] }
 syn = { version = "1", features = ["clone-impls", "derive", "extra-traits", "full", "parsing", "printing", "proc-macro", "quote", "visit", "visit-mut"] }
 tokio = { version = "1", features = ["bytes", "fs", "full", "io-std", "io-util", "libc", "macros", "memchr", "mio", "net", "num_cpus", "once_cell", "parking_lot", "process", "rt", "rt-multi-thread", "signal", "signal-hook-registry", "sync", "time", "tokio-macros", "winapi"] }
