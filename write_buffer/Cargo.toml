@@ -11,7 +11,7 @@ dotenv = "0.15.0"
 futures = "0.3"
 generated_types = { path = "../generated_types", features = ["data_types_conversions"] }
 http = "0.2"
-httparse = "1.5"
+httparse = "1.6"
 metric = { path = "../metric" }
 mutable_batch_lp = { path = "../mutable_batch_lp" }
 mutable_batch_pb = { path = "../mutable_batch_pb" }
