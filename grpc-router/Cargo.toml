@@ -22,7 +22,7 @@ tonic-reflection = "0.3.0"
 [build-dependencies]
 paste = "1.0.7"
 prost-build = "0.9"
-tonic-build = "0.6"
+tonic-build = "0.7"
 
 [dev-dependencies]
 grpc-router-test-gen = { path = "../grpc-router-test-gen" }
