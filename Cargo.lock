@@ -6874,7 +6874,7 @@ dependencies = [
  "scopeguard",
  "serde",
  "serde_json",
- "sha2 0.9.9",
+ "sha2 0.10.2",
  "smallvec",
  "sqlx",
  "sqlx-core",

@@ -53,7 +53,7 @@ reqwest = { version = "0.11", default-features = false, features = ["__rustls", 
 rustls = { version = "0.20", features = ["dangerous_configuration", "log", "logging", "tls12"] }
 serde = { version = "1", features = ["alloc", "derive", "rc", "serde_derive", "std"] }
 serde_json = { version = "1", features = ["alloc", "indexmap", "preserve_order", "raw_value", "std"] }
-sha2 = { version = "0.9", features = ["std"] }
+sha2 = { version = "0.10", features = ["std"] }
 smallvec = { version = "1", default-features = false, features = ["union"] }
 sqlx = { version = "0.5", features = ["_rt-tokio", "json", "macros", "migrate", "postgres", "runtime-tokio-rustls", "sqlx-macros", "tls", "uuid"] }
 sqlx-core = { version = "0.5", default-features = false, features = ["_rt-tokio", "_tls-rustls", "base64", "crc", "dirs", "hmac", "json", "md-5", "migrate", "postgres", "rand", "runtime-tokio-rustls", "rustls", "serde", "serde_json", "sha-1", "sha2", "tokio-stream", "uuid", "webpki", "webpki-roots", "whoami"] }
@@ -101,7 +101,7 @@ regex = { version = "1", features = ["aho-corasick", "memchr", "perf", "perf-cac
 regex-syntax = { version = "0.6", features = ["unicode", "unicode-age", "unicode-bool", "unicode-case", "unicode-gencat", "unicode-perl", "unicode-script", "unicode-segment"] }
 serde = { version = "1", features = ["alloc", "derive", "rc", "serde_derive", "std"] }
 serde_json = { version = "1", features = ["alloc", "indexmap", "preserve_order", "raw_value", "std"] }
-sha2 = { version = "0.9", features = ["std"] }
+sha2 = { version = "0.10", features = ["std"] }
 smallvec = { version = "1", default-features = false, features = ["union"] }
 sqlx-core = { version = "0.5", default-features = false, features = ["_rt-tokio", "_tls-rustls", "base64", "crc", "dirs", "hmac", "json", "md-5", "migrate", "postgres", "rand", "runtime-tokio-rustls", "rustls", "serde", "serde_json", "sha-1", "sha2", "tokio-stream", "uuid", "webpki", "webpki-roots", "whoami"] }
 sqlx-macros = { version = "0.5", default-features = false, features = ["_rt-tokio", "json", "migrate", "postgres", "runtime-tokio-rustls", "serde_json", "sha2", "uuid"] }
