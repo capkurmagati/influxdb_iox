@@ -25,7 +25,7 @@ data_types = { path = "../data_types" }
 num_cpus = "1.13.0"
 
 [build-dependencies] # In alphabetical order
-tonic-build = "0.6"
+tonic-build = "0.7"
 prost-build = "0.9"
 pbjson-build = "0.2"
 
