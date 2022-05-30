@@ -21,7 +21,7 @@ mutable_batch_pb = { path = "../mutable_batch_pb", optional = true }
 
 # Crates.io dependencies, in alphabetical order
 arrow = { version = "13", optional = true }
-arrow-flight = { version = "13", optional = true }
+arrow-flight = { version = "15", optional = true }
 bytes = "1.0"
 futures-util = { version = "0.3", optional = true }
 prost = "0.10"
