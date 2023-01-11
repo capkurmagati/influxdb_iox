@@ -70,7 +70,7 @@ tracing-core = { version = "0.1", features = ["lazy_static", "std"] }
 tracing-log = { version = "0.1", features = ["log-tracer", "std", "trace-logger"] }
 tracing-subscriber = { version = "0.3", features = ["alloc", "ansi", "ansi_term", "env-filter", "fmt", "json", "lazy_static", "matchers", "parking_lot", "regex", "registry", "serde", "serde_json", "sharded-slab", "smallvec", "std", "thread_local", "tracing", "tracing-log", "tracing-serde"] }
 uuid = { version = "0.8", features = ["getrandom", "std", "v4"] }
-zstd = { version = "0.11", features = ["arrays", "legacy", "zdict_builder"] }
+zstd = { version = "0.12", features = ["arrays", "legacy", "zdict_builder"] }
 zstd-safe = { version = "5", default-features = false, features = ["arrays", "legacy", "std", "zdict_builder"] }
 zstd-sys = { version = "2", default-features = false, features = ["legacy", "std", "zdict_builder"] }
 
